@@ -30,30 +30,30 @@ DELIM  = $2C
 * = $1800
 
 ; Set a pointer to screen memory, which will be used to scan the screen
-INIT    LDA #$00
+INIT:   LDA #$00
         STA SPOS_L
         LDA SCPAGE
         STA SPOS_H
                 
 ; Scan the line from the screen position pointer, 8 characters at a time
-SCANLN  LDA #$00
+SCANLN: LDA #$00
         STA CURBYT
         LDX #$80    ; Set bit 7
         LDY #$00
-CHECK   LDA (SPOS_L),Y
+CHECK:  LDA (SPOS_L),Y
         CMP #EMPTY
         BEQ NEXT
         TXA
         ORA CURBYT
         STA CURBYT
-NEXT    INY
+NEXT:   INY
         TXA
         CLC
-        ROR
+        ROR A
         TAX
         BNE CHECK
             
-OUTPUT  LDX CURBYT
+OUTPUT: LDX CURBYT
         JSR $DDCD
             
         ; Are we on the eighth byte of output?
@@ -72,5 +72,5 @@ OUTPUT  LDX CURBYT
         STA SPOS_L
         BCC SCANLN
             
-EXIT    RTS
+EXIT:   RTS
    
