@@ -48,8 +48,7 @@ CHECK:  LDA (SPOS_L),Y
         STA CURBYT
 NEXT:   INY
         TXA
-        CLC
-        ROR A
+        LSR A
         TAX
         BNE CHECK
             
