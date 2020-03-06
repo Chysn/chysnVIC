@@ -44,7 +44,12 @@ START:  PHP
                         ; sets the X and Y registers. It's called only to
                         ; add a return address to the stack, which will be
                         ; used to set the location of the IRQ handler.
-        TSX
+                        
+        TSX             ; Interrupts are conveniently off, so we can be sure that the
+                        ; ending address of the above JSR is still in the same place.
+                        ; So we're going to raid the stack to determine where this
+                        ; routine is located. Since the value was pulled by the RTS,
+                        ; note how the stack memory reference is offset below...  
         
         CLC
         LDA #$36        ; The CHAIN vector is 54 ($36) bytes after the JSR,
