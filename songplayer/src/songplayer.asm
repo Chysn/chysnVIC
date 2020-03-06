@@ -21,15 +21,33 @@
 
 * = $1770
 
-DATA   = $1900
-PTR    = $04
-COUNT  = $03
-IRQ    = $EABF
-VOICE  = $900B
+DATA   = $1900          ; Starting point for the song
+                        ; Each note in the song is represented by a data word.
+                        ; The first byte is the note, the next byte is the duration
+                        ; of that note in jiffies (1/60th sec.).
+                        ; After that duration has elapsed, the player moves to the
+                        ; next data word.
+                        ; If the next data word contains 0 for the note byte,
+                        ; the player returns to the beginning, DATA, and starts over.
+                        
+PTR    = $04            ; The current song position. It's initialized to DATA
+COUNT  = $03            ; Remaining jiffies before the next note
 
+IRQ    = $EABF          ; The IRQ routine. EABF is the hardware default, but if you
+                        ; have other things that need to be done, this can be
+                        ; set to something else.
+                        
+VOICE  = $900B          ; This is the voice that's being played by this routine.
+                        ;     $900A is the lowest
+                        ;     $900B is the middle
+                        ;     $900C is the highest
+                        ;     $900D is noise
+
+; Sets the IRQ vector. You may or may not want to run this, depending on how
+; you use this routine.
 START:  PHP
         SEI
-        LDA #<PLAY        ; Set the interrupt code
+        LDA #<PLAY      ; Set the interrupt code
         STA $0314
         LDA #>PLAY
         STA $0315
@@ -38,7 +56,7 @@ START:  PHP
         RTS
 
 PLAY:   LDX COUNT
-        BEQ NEXT
+        BEQ NEXT        ; When the count is 0, get and play the next note
         DEX
         STX COUNT
 RETURN: JMP IRQ
@@ -61,7 +79,7 @@ PLUS2:  INC $04
         CLC
         BCC RETURN
 
-RESET:  LDA #<DATA      ; Reset the data counter
+RESET:  LDA #<DATA      ; Reset the data counter to the beginning of the song
         STA PTR
         LDA #>DATA
         STA PTR + 1
