@@ -20,6 +20,13 @@
 ;        BCC
 ;        BCC CHAIN
 ;
+; IMPORTANT NOTE:
+;    At least one popular assembler assembles the instruction
+;        ADC $00FF,X
+;    using the zeropage,X addressing mode, even though the leading zeroes
+;    should make absolute,X explicit. If the installer crashes your system,
+;    check that.
+;
 * = $1800
 H_IRQ   = $EABF         ; This is the default hardware IRQ
 SCRPAD  = $03           ; Scratchpad memory for self-modifying code location    
