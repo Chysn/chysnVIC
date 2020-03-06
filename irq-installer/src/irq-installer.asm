@@ -63,8 +63,8 @@ START:  PHP
                         ; wind up at the hardware default IRQ handler at $EABF.
         
         CLC             ; Then, we set the IRQ vector to the new handler,
-        LDA #$02        ; which is two bytes after the JMP operand, whose address
-        ADC SCRPAD      ; is still in the scatchpad locations.
+        LDA #$02        ; which is two bytes after CHAIN's JMP operand, whose
+        ADC SCRPAD      ; address is still in the scatchpad locations.
         STA IRQV        ; Set the low byte to the new place
         LDA #$00        ; The high byte will be the same as it was before
         ADC SCRPAD + 1  ; unless the carry flag was set in the previous ADC
