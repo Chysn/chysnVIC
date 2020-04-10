@@ -19,6 +19,18 @@
 ; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 ; SOFTWARE.
 ;
+; This code generates a maze using the Sidewinder algorithm. Here's a usage
+; example:
+;
+; MAZE_E LDA #$5D
+;        STA $900F       ; Set the screen color so that the maze
+;                        ;   shows up. This program does not set
+;                        ;   any color data.
+;        LDA #$18        ; Placement of the maze
+;        JSR MAZE
+;        RTS
+;
+
 * = $1800
 BASRND = $E094          ; Routine for BASIC's RND() function
 SCPAGE = $0288          ; Screen location start
@@ -30,54 +42,49 @@ REMAIN = $05            ; Remaining cells for the current level
 
 ; Generate and display an 8x8 maze with the Sidewinder algorithm
 ;
-; The maze is 8x8, but takes up a 16x16 space on the screen
+; The maze is 8x8, but takes up a 16x16 on the screen
 ;
 ; Preparations
 ;     A is the offset location of the maze
 ;
 MAZE:   STA OFFSET
         JSR DRGRID      ; Draw the blank maze grid
-        
         LDX #$00
         JSR SCR_RS      ; Reset screen pointer to the top
         INC C_POS       ; Move to the next space to
         BCC LEVEL       ;   accommodate the left-hand
         INC C_POS+1     ;   maze border
-LEVEL:  JSR DRLEV       ; Draw the level
+LEVEL:  TXA
+        PHA
+        JSR DRLEV       ; Draw the level
+        PLA
+        TAX
         INX
         CPX #$08
         BNE LEVEL
+        RTS
         
-        RTS
-
-; Generate a test maze
-MAZE_T  LDA #$5D
-        STA $900F       ; Set the screen color
-        LDA #$00        ; Put the maze in the upper left
-        JSR MAZE
-        RTS
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; DRAW SUBROUTINES
+;;;; SUBROUTINES
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; DRGRID - Draw a 16x16 starting background. Maze walls will be
 ; removed from this background during the build process.
 DRGRID: JSR SCR_RS      ; Reset screen pointer to the top
-        LDX #$0F
-FLOOR:  LDA #$66        ; Maze background character
-        LDY #$10
-WALL:   STA (C_POS),Y
-        DEY
-        BPL WALL
+        LDX #$0E
+DROP:   LDY #$10
         LDA #$16
         CLC
         ADC C_POS
         STA C_POS
-        BCC ENDROW
+        BCC WALLS
         INC C_POS+1
+WALLS:  LDA #$66        ; Maze background character
+L_WALL: STA (C_POS),Y
+        DEY
+        BPL L_WALL
 ENDROW: DEX
-        BPL FLOOR
+        BPL DROP
         RTS
         
 ; DRLEV - Generate and draw a level of the sidewinder maze
@@ -135,7 +142,6 @@ KNOCK:  DEY             ; Keep one wall intact
 KNLOOP: STA (C_POS),Y   ; Knock out Y walls
         DEY
         BPL KNLOOP
-
 ; Select a random cell from the corridor and knock out a wall
 ; directly above it. This provides access to every other open
 ; cell in the maze.
@@ -179,8 +185,6 @@ SCR_RS: LDA OFFSET
 ; RAND - Get a random number between 1 and 8. A contains the
 ; maximum value. The random number will be in Y.
 RAND:   STA SCRPAD
-        TXA             ; Save the X register from the KERNAL
-        PHA
         DEC SCRPAD      ; Behind the scenes, look for a number
                         ;   between 0 and A - 1. See the INY
                         ;   below, which compensates
@@ -190,13 +194,9 @@ RAND:   STA SCRPAD
         CMP SCRPAD
         BCC E_RAND      ; Get another random number if this one
         BEQ E_RAND      ; is greater than the maximum
-        PLA
-        TAX
         INC SCRPAD
         LDA SCRPAD
         BNE RAND
 E_RAND: TAY
         INY
-        PLA
-        TAX
         RTS
