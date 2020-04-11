@@ -27,10 +27,13 @@ VOICEH = $900C
 VOICEM = $900B
 VOICEL = $900A
 NOISE  = $900D  
-VOLUME = $900E                  
+VOLUME = $900E
+                  
 REG_L  = $033C          ; \ Storage for the shift register
 REG_H  = $033D          ; /
-TEMPO  = $033E          ; Tempo counter
+TEMPO  = $033E          ; Tempo (lower numbers are faster)
+CDOWN  = $033F          ; Tempo countdown
+PLAY   = $0340          ; Music is playing
 
         
 IN_ISR: SEI
@@ -40,14 +43,45 @@ IN_ISR: SEI
         STA ISR+1
         LDA #$08
         STA TEMPO
+        STA CDOWN
+        LDA #$32
+        STA REG_L
+        LDA #$23
+        STA REG_H
+        JSR M_PLAY
         CLI
         RTS
+
+M_PLAY: LDA #$01
+        STA PLAY
+        RTS
+    
+M_STOP  LDA #$00
+        STA PLAY
+        RTS
                     
-PLAYER: DEC TEMPO
+; NXNOTE - Rotates the 16-bit register one bit to the left
+NXNOTE: LDX #$00        ; X is the carry bit for REG_H
+        ASL REG_L       ; Shift the low byte, which may set C
+        ROL REG_H       ; Rotate the high byte, including C
+        BCC ROLL        ; Was the high bit of the high byte set?
+        LDX #$01        ; If so, add it back to the beginning
+ROLL    TXA
+        ORA REG_L
+        STA REG_L
+        RTS
+
+; PLAYER - The Interrupt Service Routine. Based on the tempo,
+; get the next note and play it.
+PLAYER: LDA #$01
+        BIT PLAY
+        BEQ DEFISR
+        DEC TEMPO
         BNE DEFISR
-        LDA #$08
+        LDA CDOWN
         STA TEMPO
         JSR NXNOTE
+        LDA REG_H
         ORA #$80
         STA VOICEM
         LDA REG_L
@@ -55,23 +89,4 @@ PLAYER: DEC TEMPO
         STA VOLUME
 DEFISR: JMP SY_ISR
 
-; NXNOTE stores the current note value in the NOTE location. 
-; Then, shift the 16-bit register one bit to the left, and
-; EOR the last bit, and return the result to the beginning of
-; the register, to make a 32-step pattern.
-NXNOTE: LDA REG_H       ; Since the VIC-20's frequency values
-        ASR             ;   are 7 bits, use the top seven bits
-        PHA             ;   of the seven bits of the shift 
-                        ;   register as the frequency value
-        LDX #$00        ; X is the carry bit for REG_H
-        CLC
-        ASL REG_L
-        ROL REG_H
-        BCC ROLL
-        LDX #$01
-ROLL    TXA
-        ORA REG_L
-        STA REG_L
-        PLA
-        RTS
 
